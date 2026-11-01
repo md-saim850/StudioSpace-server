@@ -48,6 +48,22 @@ app.get('/studios', async(req, res) => {
   }
 })
 
+// Get specifice studios data
+app.get('/studios/:id', async(req, res) => {
+  try{
+    const id = req.params.id;
+    const result = await studiosCollection.findOne({_id:new ObjectId(id)});
+    return res.json(result);
+    
+  }catch(error){
+    console.log(error);
+    return res.status(204).json({
+      message:"Failed to fetch studios data!"
+    })
+
+  }
+})
+
 app.listen(port, () => {
   console.log(`${port} Running...`);
 });
