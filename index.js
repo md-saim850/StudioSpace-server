@@ -10,6 +10,9 @@ app.use(express.json());
 app.use(cors());
 
 const client = new MongoClient(process.env.MONGODB_URI);
+const db = client.db("studio-space-db");
+
+const studiosCollection = db.collection("studios");
 
 export async function connectToMongoDB() {
   try {
@@ -29,6 +32,21 @@ connectToMongoDB();
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
+
+// Get all studios data
+app.get('/studios', async(req, res) => {
+  try{
+    const result = await studiosCollection.find({}).toArray();
+    return res.json(result);
+    
+  }catch(error){
+    console.log(error);
+    return res.status(204).json({
+      message:"Failed to fetch studios data!"
+    })
+
+  }
+})
 
 app.listen(port, () => {
   console.log(`${port} Running...`);
