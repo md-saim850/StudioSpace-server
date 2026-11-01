@@ -13,6 +13,7 @@ const client = new MongoClient(process.env.MONGODB_URI);
 const db = client.db("studio-space-db");
 
 const studiosCollection = db.collection("studios");
+const myBookingCollection = db.collection("my-booking");
 
 export async function connectToMongoDB() {
   try {
@@ -79,6 +80,28 @@ app.post('/add-studio', async(req, res) =>{
     console.log(error);
     return res.status(500).json({
       message:"Failed to add studio!"
+    })
+    
+  }
+})
+
+
+app.post('/add-booking', async(req, res) =>{
+  try{
+    const data = req.body;
+
+    console.log(data);
+    const result = await myBookingCollection.insertOne({data})
+    
+    return res.status(201).json({
+      message: "Studio added in My Booking.",
+      insertedID: result.insertedId
+    })
+
+  }catch(error){
+    console.log(error);
+    return res.status(500).json({
+      message:"Failed to add studio in My Booking!"
     })
     
   }
