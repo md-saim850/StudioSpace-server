@@ -64,6 +64,27 @@ app.get('/studios/:id', async(req, res) => {
   }
 })
 
+// Added Studio
+app.post('/add-studio', async(req, res) =>{
+  try{
+    const data = req.body;
+    const result = await studiosCollection.insertOne({data})
+    
+    return res.status(201).json({
+      message: "Studio added successfully.",
+      insertedID: result.insertedId
+    })
+
+  }catch(error){
+    console.log(error);
+    return res.status(500).json({
+      message:"Failed to add studio!"
+    })
+    
+  }
+})
+
+
 app.listen(port, () => {
   console.log(`${port} Running...`);
 });
