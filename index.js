@@ -2,6 +2,7 @@ import { MongoClient, ObjectId } from 'mongodb';
 import express from 'express';
 import 'dotenv/config';
 import cors from 'cors';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 const app = express();
 const port = process.env.PORT;
@@ -15,6 +16,7 @@ const db = client.db("studio-space-db");
 const studiosCollection = db.collection("studios");
 const myBookingCollection = db.collection("my-booking");
 const myListingsCollection = db.collection("my-listings");
+const myCategoryCollection = db.collection("category");
 
 export async function connectToMongoDB() {
   try {
@@ -30,28 +32,70 @@ export async function connectToMongoDB() {
 
 connectToMongoDB();
 
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+);
+
+const middleware = async (req, res, next) => {
+  const authHeaders = req.headers.authorization;
+
+  if (!authHeaders || !authHeaders.startsWith("Bearer ")) {
+    return res.status(401).send({
+      message: "Unauthorized!",
+    });
+  }
+
+  const token = authHeaders.split(" ")[1];
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+
+    req.user = payload;
+
+    next();
+  } catch (error) {
+    return res.status(401).send({
+      message: "Invalid or expired token!",
+    });
+  }
+};
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
 // Get all studios data
-app.get('/studios', async(req, res) => {
-  try{
-    const result = await studiosCollection.find({}).toArray();
+app.get('/studios', async (req, res) => {
+  try {
+    let query = studiosCollection.find({});
+
+    if (req.query.limit) {
+      const limitNum = parseInt(req.query.limit, 10);
+
+      if (isNaN(limitNum) || limitNum <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid limit value"
+        });
+      }
+
+      query = query.limit(limitNum);
+    }
+
+    const result = await query.toArray();
+
     return res.json(result);
-    
-  }catch(error){
+
+  } catch (error) {
     console.log(error);
     return res.status(204).json({
       message:"Failed to fetch studios data!"
     })
-
   }
-})
+}); 
 
 // Get specifice studios data
-app.get('/studios/:id', async(req, res) => {
+app.get('/studios/:id', middleware, async(req, res) => {
   try{
     const id = req.params.id;
     const result = await studiosCollection.findOne({_id:new ObjectId(id)});
@@ -67,7 +111,7 @@ app.get('/studios/:id', async(req, res) => {
 })
 
 // Add Studio in my listing
-app.post('/add-studio', async(req, res) =>{
+app.post('/add-studio', middleware, async(req, res) =>{
   try{
     const data = req.body;
     const result = await myListingsCollection.insertOne({data})
@@ -87,7 +131,7 @@ app.post('/add-studio', async(req, res) =>{
 })
 
 //Get all my booking data
-app.get('/my-booking', async(req, res) => {
+app.get('/my-booking', middleware, async(req, res) => {
   try{
     const result = await myBookingCollection.find({}).toArray();
     return res.json(result);
@@ -99,7 +143,7 @@ app.get('/my-booking', async(req, res) => {
 })
 
 // Add studio in my booking
-app.post('/add-booking', async(req, res) =>{
+app.post('/add-booking', middleware, async(req, res) =>{
   try{
     const data = req.body;
     const result = await myBookingCollection.insertOne({...data})
@@ -118,7 +162,8 @@ app.post('/add-booking', async(req, res) =>{
   }
 })
 
-app.delete("/delete-booking/:id", async(req, res) => {
+//Delete my booking data
+app.delete("/delete-booking/:id", middleware, async(req, res) => {
   try{
     const {id} = req.params
     
@@ -146,7 +191,7 @@ app.delete("/delete-booking/:id", async(req, res) => {
 })
 
 //Get all my booking data
-app.get('/my-listing', async(req, res) => {
+app.get('/my-listing', middleware, async(req, res) => {
   try{
     const result = await myListingsCollection.find({}).toArray();
     return res.json(result);
@@ -157,7 +202,8 @@ app.get('/my-listing', async(req, res) => {
   }
 })
 
-app.delete("/delete-listing/:id", async(req, res) => {
+//Delete my listing data
+app.delete("/delete-listing/:id", middleware, async(req, res) => {
   try{
     const {id} = req.params
     
@@ -183,6 +229,36 @@ app.delete("/delete-listing/:id", async(req, res) => {
     
   }
 })
+
+//Get all category
+app.get('/category', async (req, res) => {
+  try {
+    let query = myCategoryCollection.find({});
+
+    if (req.query.limit) {
+      const limitNum = parseInt(req.query.limit, 10);
+
+      if (isNaN(limitNum) || limitNum <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid limit value"
+        });
+      }
+
+      query = query.limit(limitNum);
+    }
+
+    const result = await query.toArray();
+
+    return res.json(result);
+
+  } catch (error) {
+    console.log(error);
+    return res.status(204).json({
+      message:"Failed to fetch category data!"
+    })
+  }
+}); 
 
 app.listen(port, () => {
   console.log(`${port} Running...`);
