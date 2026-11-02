@@ -86,6 +86,18 @@ app.post('/add-studio', async(req, res) =>{
   }
 })
 
+//Get all my booking data
+app.get('/my-booking', async(req, res) => {
+  try{
+    const result = await myBookingCollection.find({}).toArray();
+    return res.json(result);
+    
+  }catch(error){
+    console.log(error);
+    return res.status(204).json({message:"Failed to fetch My Booking!"})
+  }
+})
+
 // Add studio in my booking
 app.post('/add-booking', async(req, res) =>{
   try{
@@ -106,17 +118,34 @@ app.post('/add-booking', async(req, res) =>{
   }
 })
 
-//Get all my booking data
-app.get('/my-booking', async(req, res) => {
+app.delete("/delete-booking/:id", async(req, res) => {
   try{
-    const result = await myBookingCollection.find({}).toArray();
-    return res.json(result);
+    const {id} = req.params
     
+    const result = await myBookingCollection.deleteOne({
+      _id: new ObjectId(id)
+    })
+
+    if(result.deletedCount === 0){
+      return res.status(404).send({
+        message: "Booking not found"
+      });   
+    }
+
+    res.send({
+      message: "Booking deleted successfully"
+    });
+
   }catch(error){
     console.log(error);
-    return res.status(204).json({message:"Failed to fetch My Booking!"})
+    res.status(500).send({
+      message: "Failed to delete booking"
+    });
+    
   }
 })
+
+
 
 //Get all my booking data
 app.get('/my-listing', async(req, res) => {
@@ -129,6 +158,8 @@ app.get('/my-listing', async(req, res) => {
     return res.status(204).json({message:"Failed to fetch My Listing!"})
   }
 })
+
+
 
 app.listen(port, () => {
   console.log(`${port} Running...`);
