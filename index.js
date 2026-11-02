@@ -90,8 +90,6 @@ app.post('/add-studio', async(req, res) =>{
 app.post('/add-booking', async(req, res) =>{
   try{
     const data = req.body;
-
-    console.log(data);
     const result = await myBookingCollection.insertOne({...data})
     
     return res.status(201).json({
@@ -108,7 +106,7 @@ app.post('/add-booking', async(req, res) =>{
   }
 })
 
-//Get all my listing data
+//Get all my booking data
 app.get('/my-booking', async(req, res) => {
   try{
     const result = await myBookingCollection.find({}).toArray();
@@ -116,10 +114,21 @@ app.get('/my-booking', async(req, res) => {
     
   }catch(error){
     console.log(error);
-    return res.status(204).json({message:"Failed to fetch My Listing!"})
+    return res.status(204).json({message:"Failed to fetch My Booking!"})
   }
 })
 
+//Get all my booking data
+app.get('/my-listing', async(req, res) => {
+  try{
+    const result = await myListingsCollection.find({}).toArray();
+    return res.json(result);
+    
+  }catch(error){
+    console.log(error);
+    return res.status(204).json({message:"Failed to fetch My Listing!"})
+  }
+})
 
 app.listen(port, () => {
   console.log(`${port} Running...`);
