@@ -15,7 +15,6 @@ const db = client.db("studio-space-db");
 
 const studiosCollection = db.collection("studios");
 const myBookingCollection = db.collection("my-booking");
-const myListingsCollection = db.collection("my-listings");
 const myCategoryCollection = db.collection("category");
 
 export async function connectToMongoDB() {
@@ -65,34 +64,87 @@ app.get('/', (req, res) => {
 });
 
 // Get all studios data
-app.get('/studios', async (req, res) => {
+app.get("/studios", async (req, res) => {
   try {
-    let query = studiosCollection.find({});
+    const { category, limit } = req.query;
 
-    if (req.query.limit) {
-      const limitNum = parseInt(req.query.limit, 10);
+    const filter = {};
 
-      if (isNaN(limitNum) || limitNum <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid limit value"
-        });
-      }
-
-      query = query.limit(limitNum);
+    if (category) {
+      filter["data.category"] = category;
     }
 
-    const result = await query.toArray();
+    // Default limit: 10
+    const limitNum = parseInt(limit) || 10;
 
-    return res.json(result);
+    const result = await studiosCollection
+      .find(filter)
+      .limit(Math.max(1, Math.min(limitNum, 100)))
+      .toArray();
+
+    res.status(200).send(result);
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).send({
+      message: "Failed to fetch studios",
+    });
+  }
+});
+
+
+// Get all Studio that has create by you
+app.get('/my-listings', middleware, async (req, res) => {
+  try {
+    const result = await studiosCollection
+      .find({ "data.owner.id": req.user.id })
+      .toArray();
+
+    return res.status(200).json(result);
 
   } catch (error) {
     console.log(error);
-    return res.status(204).json({
-      message:"Failed to fetch studios data!"
-    })
+
+    return res.status(500).json({
+      message: "Failed to fetch your listings!",
+    });
   }
-}); 
+});
+
+app.delete('/delete-listings/:id', middleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid studio ID!",
+      });
+    }
+
+    const result = await studiosCollection.deleteOne({
+      _id: new ObjectId(id),
+      "data.owner.id": req.user.id,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        message: "Studio not found or you don't have permission to delete it!",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Studio deleted successfully.",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Failed to delete studio!",
+    });
+  }
+});
 
 // Get specifice studios data
 app.get('/studios/:id', middleware, async(req, res) => {
@@ -114,7 +166,7 @@ app.get('/studios/:id', middleware, async(req, res) => {
 app.post('/add-studio', middleware, async(req, res) =>{
   try{
     const data = req.body;
-    const result = await myListingsCollection.insertOne({data})
+    const result = await studiosCollection.insertOne({data})
     
     return res.status(201).json({
       message: "Studio added successfully.",
@@ -168,46 +220,6 @@ app.delete("/delete-booking/:id", middleware, async(req, res) => {
     const {id} = req.params
     
     const result = await myBookingCollection.deleteOne({
-      _id: new ObjectId(id)
-    })
-
-    if(result.deletedCount === 0){
-      return res.status(404).send({
-        message: "Studio not found"
-      });   
-    }
-
-    res.send({
-      message: "Studio deleted successfully"
-    });
-
-  }catch(error){
-    console.log(error);
-    res.status(500).send({
-      message: "Failed to delete Studio"
-    });
-    
-  }
-})
-
-//Get all my booking data
-app.get('/my-listing', middleware, async(req, res) => {
-  try{
-    const result = await myListingsCollection.find({}).toArray();
-    return res.json(result);
-    
-  }catch(error){
-    console.log(error);
-    return res.status(204).json({message:"Failed to fetch My Listing!"})
-  }
-})
-
-//Delete my listing data
-app.delete("/delete-listing/:id", middleware, async(req, res) => {
-  try{
-    const {id} = req.params
-    
-    const result = await myListingsCollection.deleteOne({
       _id: new ObjectId(id)
     })
 
