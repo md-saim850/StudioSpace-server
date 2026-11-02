@@ -14,6 +14,7 @@ const db = client.db("studio-space-db");
 
 const studiosCollection = db.collection("studios");
 const myBookingCollection = db.collection("my-booking");
+const myListingsCollection = db.collection("my-listings");
 
 export async function connectToMongoDB() {
   try {
@@ -65,11 +66,11 @@ app.get('/studios/:id', async(req, res) => {
   }
 })
 
-// Added Studio
+// Add Studio in my listing
 app.post('/add-studio', async(req, res) =>{
   try{
     const data = req.body;
-    const result = await studiosCollection.insertOne({data})
+    const result = await myListingsCollection.insertOne({data})
     
     return res.status(201).json({
       message: "Studio added successfully.",
@@ -85,13 +86,13 @@ app.post('/add-studio', async(req, res) =>{
   }
 })
 
-
+// Add studio in my booking
 app.post('/add-booking', async(req, res) =>{
   try{
     const data = req.body;
 
     console.log(data);
-    const result = await myBookingCollection.insertOne({data})
+    const result = await myBookingCollection.insertOne({...data})
     
     return res.status(201).json({
       message: "Studio added in My Booking.",
@@ -104,6 +105,18 @@ app.post('/add-booking', async(req, res) =>{
       message:"Failed to add studio in My Booking!"
     })
     
+  }
+})
+
+//Get all my listing data
+app.get('/my-booking', async(req, res) => {
+  try{
+    const result = await myBookingCollection.find({}).toArray();
+    return res.json(result);
+    
+  }catch(error){
+    console.log(error);
+    return res.status(204).json({message:"Failed to fetch My Listing!"})
   }
 })
 
