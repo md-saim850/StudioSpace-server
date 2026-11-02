@@ -128,24 +128,22 @@ app.delete("/delete-booking/:id", async(req, res) => {
 
     if(result.deletedCount === 0){
       return res.status(404).send({
-        message: "Booking not found"
+        message: "Studio not found"
       });   
     }
 
     res.send({
-      message: "Booking deleted successfully"
+      message: "Studio deleted successfully"
     });
 
   }catch(error){
     console.log(error);
     res.status(500).send({
-      message: "Failed to delete booking"
+      message: "Failed to delete Studio"
     });
     
   }
 })
-
-
 
 //Get all my booking data
 app.get('/my-listing', async(req, res) => {
@@ -159,7 +157,32 @@ app.get('/my-listing', async(req, res) => {
   }
 })
 
+app.delete("/delete-listing/:id", async(req, res) => {
+  try{
+    const {id} = req.params
+    
+    const result = await myListingsCollection.deleteOne({
+      _id: new ObjectId(id)
+    })
 
+    if(result.deletedCount === 0){
+      return res.status(404).send({
+        message: "Studio not found"
+      });   
+    }
+
+    res.send({
+      message: "Studio deleted successfully"
+    });
+
+  }catch(error){
+    console.log(error);
+    res.status(500).send({
+      message: "Failed to delete Studio"
+    });
+    
+  }
+})
 
 app.listen(port, () => {
   console.log(`${port} Running...`);
