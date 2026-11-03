@@ -31,9 +31,7 @@ export async function connectToMongoDB() {
 
 connectToMongoDB();
 
-const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
-);
+const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
 
 const middleware = async (req, res, next) => {
   const authHeaders = req.headers.authorization;
@@ -48,10 +46,9 @@ const middleware = async (req, res, next) => {
 
   try {
     const { payload } = await jwtVerify(token, JWKS);
-
     req.user = payload;
-
     next();
+
   } catch (error) {
     return res.status(401).send({
       message: "Invalid or expired token!",
@@ -66,14 +63,14 @@ app.get('/', (req, res) => {
 // Get all studios data
 app.get("/studios", async (req, res) => {
   try {
-    const { category, limit } = req.query;
-
     const filter = {};
-
+    
+    const { category, limit } = req.query;
+    
     if (category) {
       filter["data.category"] = category;
     }
-
+    
     const limitNum = parseInt(limit);
     
     let result;
@@ -98,10 +95,7 @@ app.get("/studios", async (req, res) => {
 // Get all Studio that has create by you
 app.get('/my-listings', middleware, async (req, res) => {
   try {
-    const result = await studiosCollection
-      .find({ "data.owner.id": req.user.id })
-      .toArray();
-
+    const result = await studiosCollection.find({ "data.owner.id": req.user.id }).toArray();
     return res.status(200).json(result);
 
   } catch (error) {
