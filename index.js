@@ -74,25 +74,26 @@ app.get("/studios", async (req, res) => {
       filter["data.category"] = category;
     }
 
-    // Default limit: 10
-    const limitNum = parseInt(limit) || 10;
-
-    const result = await studiosCollection
-      .find(filter)
-      .limit(Math.max(1, Math.min(limitNum, 100)))
-      .toArray();
+    const limitNum = parseInt(limit);
+    
+    let result;
+    if(limitNum){
+      result = await studiosCollection.find(filter).limit(Math.max(1, Math.min(limitNum, 100))).toArray();
+    }
+    else{
+      result = await studiosCollection.find(filter).toArray();
+    }
 
     res.status(200).send(result);
 
   } catch (error) {
     console.error(error);
-
     res.status(500).send({
       message: "Failed to fetch studios",
     });
+
   }
 });
-
 
 // Get all Studio that has create by you
 app.get('/my-listings', middleware, async (req, res) => {
@@ -182,37 +183,155 @@ app.post('/add-studio', middleware, async(req, res) =>{
   }
 })
 
-//Get all my booking data
-app.get('/my-booking', middleware, async(req, res) => {
-  try{
-    const result = await myBookingCollection.find({}).toArray();
-    return res.json(result);
+// Update studio data
+app.put("/studios/:id", middleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid studio ID",
+      });
+    }
     
-  }catch(error){
-    console.log(error);
-    return res.status(204).json({message:"Failed to fetch My Booking!"})
+    const {
+      title,
+      category,
+      hourlyRate,
+      securityDeposit,
+      maxCapacity,
+      location,
+      image,
+      amenities,
+      overview,
+    } = req.body;
+
+    const userId = req.user.id;
+
+    const existingStudio = await studiosCollection.findOne({
+      _id: new ObjectId(id),
+      "data.owner.id": userId,
+    });
+
+    if (!existingStudio) {
+      return res.status(404).send({
+        message: "Studio not found or you are not authorized to update it.",
+      });
+    }
+
+    const updatedAt = new Date();
+
+    const updatedData = {
+      "data.title": title,
+      "data.category": category,
+      "data.hourlyRate": hourlyRate,
+      "data.securityDeposit": securityDeposit,
+      "data.maxCapacity": maxCapacity,
+      "data.location": location,
+      "data.image": image,
+      "data.amenities": amenities,
+      "data.overview": overview,
+
+      // Update root-level fields
+      title,
+      category,
+      hourlyRate,
+      securityDeposit,
+      maxCapacity,
+      location,
+      image,
+      amenities,
+      overview,
+
+      updatedAt,
+    };
+
+    const result = await studiosCollection.updateOne({
+        _id: new ObjectId(id),
+        "data.owner.id": userId,
+      },{
+        $set: updatedData,
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).send({
+        message: "No changes were made.",
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Studio updated successfully!",
+    });
+
+  } catch (error) {
+    console.error("Update studio error:", error);
+
+    res.status(500).send({
+      message: "Failed to update studio.",
+      error: error.message,
+    });
   }
-})
+});
+
+//Get all my booking data
+app.get('/my-booking', middleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await myBookingCollection.find({ userId: userId }).toArray();
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "Failed to fetch bookings!"
+    });
+  }
+});
 
 // Add studio in my booking
-app.post('/add-booking', middleware, async(req, res) =>{
-  try{
+app.post('/add-booking', middleware, async (req, res) => {
+  try {
     const data = req.body;
-    const result = await myBookingCollection.insertOne({...data})
-    
-    return res.status(201).json({
-      message: "Studio added in My Booking.",
-      insertedID: result.insertedId
-    })
+    const userId = req.user.id;
 
-  }catch(error){
-    console.log(error);
+    const existingBooking = await myBookingCollection.findOne({
+      "studio._id": data.studio._id,
+      date: data.date,
+      status: "Confirmed",
+      startTime: { $lt: data.endTime },
+      endTime: { $gt: data.startTime }
+    });
+
+    if (existingBooking) {
+      return res.status(409).json({
+        message: "This studio is already booked during this time!"
+      });
+    }
+
+    const result = await myBookingCollection.insertOne({
+      ...data,
+      userId,
+      createdAt: new Date(),
+    });
+
+    return res.status(201).json({
+      message: "Studio booked successfully.",
+      insertedID: result.insertedId
+    });
+
+  } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
-      message:"Failed to add studio in My Booking!"
-    })
-    
+      message: "Failed to add booking!"
+    });
   }
-})
+});
 
 //Delete my booking data
 app.delete("/delete-booking/:id", middleware, async(req, res) => {
