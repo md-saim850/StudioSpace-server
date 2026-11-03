@@ -388,3 +388,5 @@ app.get('/category', async (req, res) => {
 app.listen(port, () => {
   console.log(`${port} Running...`);
 });
+
+export default app;
