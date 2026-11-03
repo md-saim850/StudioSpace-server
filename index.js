@@ -4,7 +4,7 @@ import 'dotenv/config';
 import cors from 'cors';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-export default app = express();
+const app = express();
 const port = process.env.PORT;
 
 app.use(express.json());
@@ -384,3 +384,7 @@ app.get('/category', async (req, res) => {
     })
   }
 }); 
+
+app.listen(port, () => {
+  console.log(`${port} Running...`);
+});
