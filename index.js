@@ -293,6 +293,8 @@ app.post('/add-booking', middleware, async (req, res) => {
     const data = req.body;
     const userId = req.user.id;
 
+    console.log(data);
+
     const existingBooking = await myBookingCollection.findOne({
       "studio._id": data.studio._id,
       date: data.date,
@@ -358,32 +360,19 @@ app.delete("/delete-booking/:id", middleware, async(req, res) => {
 //Get all category
 app.get('/category', async (req, res) => {
   try {
-    let query = myCategoryCollection.find({});
+    const result = await myCategoryCollection.find({}).toArray();
 
-    if (req.query.limit) {
-      const limitNum = parseInt(req.query.limit, 10);
-
-      if (isNaN(limitNum) || limitNum <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid limit value"
-        });
-      }
-
-      query = query.limit(limitNum);
-    }
-
-    const result = await query.toArray();
-
-    return res.json(result);
+    return res.status(200).json(result);
 
   } catch (error) {
-    console.log(error);
-    return res.status(204).json({
-      message:"Failed to fetch category data!"
-    })
+    console.error("Category fetching error:", error);
+
+    return res.status(500).json({
+      message: "Failed to fetch category data!"
+    });
   }
-}); 
+});
+
 
 app.listen(port, () => {
   console.log(`${port} Running...`);
