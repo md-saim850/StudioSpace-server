@@ -35,18 +35,20 @@ const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks
 
 const middleware = async (req, res, next) => {
   const authHeaders = req.headers.authorization;
-
-  if (!authHeaders || !authHeaders.startsWith("Bearer ")) {
+  console.log(authHeaders);
+  if (!authHeaders || !authHeaders.startsWith("Bearer")) {
     return res.status(401).send({
       message: "Unauthorized!",
     });
   }
+  
 
   const token = authHeaders.split(" ")[1];
-
+  console.log(token);
   try {
     const { payload } = await jwtVerify(token, JWKS);
     req.user = payload;
+    console.log("success.");
     next();
 
   } catch (error) {
