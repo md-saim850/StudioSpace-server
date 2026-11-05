@@ -10,26 +10,64 @@ const port = process.env.PORT;
 app.use(express.json());
 app.use(cors());
 
+
+app.use(async (req, res, next) => {
+  try {
+    await connectToMongoDB();
+    next();
+  } catch (error) {
+    console.error("Database initialization failed:", error);
+
+    res.status(503).json({
+      message: "Database temporarily unavailable."
+    });
+  }
+});
+
+
 const client = new MongoClient(process.env.MONGODB_URI);
+
 const db = client.db("studio-space-db");
 
 const studiosCollection = db.collection("studios");
 const myBookingCollection = db.collection("my-booking");
 const myCategoryCollection = db.collection("category");
 
+let connectionPromise;
+
 export async function connectToMongoDB() {
   try {
-    await client.connect();
-    console.log("You successfully connected to MongoDB!");
-    return client;
+    if (!connectionPromise) {
+      connectionPromise = client.connect().catch((error) => {
+        connectionPromise = null;
+        throw error;
+      });
+    }
 
-  } catch (err) {
-    console.dir(err);
+    await connectionPromise;
 
+    return db;
+
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    throw error;
   }
 }
 
-connectToMongoDB();
+
+// export async function connectToMongoDB() {
+//   try {
+//     await client.connect();
+//     console.log("You successfully connected to MongoDB!");
+//     return client;
+
+//   } catch (err) {
+//     console.dir(err);
+
+//   }
+// }
+
+// connectToMongoDB();
 
 const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
 
