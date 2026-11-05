@@ -7,19 +7,13 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 const app = express();
 const port = process.env.PORT;
 
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://studio-space-client-one.vercel.app",
+  ],
+}));
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://studio-space-client-one.vercel.app",
-];
-
-app.use(
-  cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 app.use(express.json());
 
 
