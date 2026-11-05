@@ -16,7 +16,6 @@ app.use(cors({
 
 app.use(express.json());
 
-
 app.use(async (req, res, next) => {
   try {
     await connectToMongoDB();
@@ -29,7 +28,6 @@ app.use(async (req, res, next) => {
     });
   }
 });
-
 
 const client = new MongoClient(process.env.MONGODB_URI);
 
@@ -60,35 +58,19 @@ export async function connectToMongoDB() {
   }
 }
 
-
-// export async function connectToMongoDB() {
-//   try {
-//     await client.connect();
-//     console.log("You successfully connected to MongoDB!");
-//     return client;
-
-//   } catch (err) {
-//     console.dir(err);
-
-//   }
-// }
-
-// connectToMongoDB();
-
 const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
 
 const middleware = async (req, res, next) => {
   const authHeaders = req.headers.authorization;
-  console.log(authHeaders);
+
   if (!authHeaders || !authHeaders.startsWith("Bearer")) {
     return res.status(401).send({
       message: "Unauthorized!",
     });
   }
-  
 
   const token = authHeaders.split(" ")[1];
-  console.log(token);
+
   try {
     const { payload } = await jwtVerify(token, JWKS);
     req.user = payload;
@@ -138,58 +120,8 @@ app.get("/studios", async (req, res) => {
   }
 });
 
-// Get all Studio that has create by you
-app.get('/my-listings', middleware, async (req, res) => {
-  try {
-    const result = await studiosCollection.find({ "data.owner.id": req.user.id }).toArray();
-    return res.status(200).json(result);
-
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      message: "Failed to fetch your listings!",
-    });
-  }
-});
-
-app.delete('/delete-listings/:id', middleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: "Invalid studio ID!",
-      });
-    }
-
-    const result = await studiosCollection.deleteOne({
-      _id: new ObjectId(id),
-      "data.owner.id": req.user.id,
-    });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({
-        message: "Studio not found or you don't have permission to delete it!",
-      });
-    }
-
-    return res.status(200).json({
-      message: "Studio deleted successfully.",
-    });
-
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      message: "Failed to delete studio!",
-    });
-  }
-});
-
-
 // Get specifice studios data
-app.get('/studios/:id', middleware, async(req, res) => {
+app.get('/studios/:id', async(req, res) => {
   try{
     const id = req.params.id;
     const result = await studiosCollection.findOne({_id:new ObjectId(id)});
@@ -312,6 +244,55 @@ app.put("/studios/:id", middleware, async (req, res) => {
     res.status(500).send({
       message: "Failed to update studio.",
       error: error.message,
+    });
+  }
+});
+
+// Get all Studio that has create by you
+app.get('/my-listings', middleware, async (req, res) => {
+  try {
+    const result = await studiosCollection.find({ "data.owner.id": req.user.id }).toArray();
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "Failed to fetch your listings!",
+    });
+  }
+});
+
+app.delete('/delete-listings/:id', middleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid studio ID!",
+      });
+    }
+
+    const result = await studiosCollection.deleteOne({
+      _id: new ObjectId(id),
+      "data.owner.id": req.user.id,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        message: "Studio not found or you don't have permission to delete it!",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Studio deleted successfully.",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Failed to delete studio!",
     });
   }
 });
