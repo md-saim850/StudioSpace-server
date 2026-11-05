@@ -141,6 +141,7 @@ app.delete('/delete-listings/:id', middleware, async (req, res) => {
   }
 });
 
+
 // Get specifice studios data
 app.get('/studios/:id', middleware, async(req, res) => {
   try{
@@ -292,8 +293,6 @@ app.post('/add-booking', middleware, async (req, res) => {
   try {
     const data = req.body;
     const userId = req.user.id;
-
-    console.log(data);
 
     const existingBooking = await myBookingCollection.findOne({
       "studio._id": data.studio._id,
