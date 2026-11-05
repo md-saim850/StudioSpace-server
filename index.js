@@ -8,15 +8,7 @@ const app = express();
 const port = process.env.PORT;
 
 app.use(express.json());
-
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://studio-space-server-tau.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(cors());
 
 
 app.use(async (req, res, next) => {
